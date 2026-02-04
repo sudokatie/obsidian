@@ -1,0 +1,13 @@
+-- Simple counter example
+
+def count (n --)
+  while dup 0 > do
+    dup print
+    1 -
+  end
+  drop
+end
+
+def main (--)
+  5 count
+end

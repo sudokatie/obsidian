@@ -1,0 +1,15 @@
+-- Factorial implementation
+-- Usage: 5 factorial gives 120
+
+def factorial (n -- result)
+  1 swap
+  while dup 0 > do
+    swap over *
+    swap 1 -
+  end
+  drop
+end
+
+def main (--)
+  5 factorial print
+end

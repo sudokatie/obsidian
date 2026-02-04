@@ -1,0 +1,15 @@
+-- Fibonacci sequence
+
+def fib (n -- result)
+  dup 1 <= if
+    -- base case: return n
+  else
+    dup 1 - fib
+    swap 2 - fib
+    +
+  end
+end
+
+def main (--)
+  10 fib print
+end
