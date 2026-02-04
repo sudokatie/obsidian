@@ -44,6 +44,12 @@ impl From<std::io::Error> for Error {
     }
 }
 
+impl From<CheckError> for Error {
+    fn from(e: CheckError) -> Self {
+        Error::Check(e)
+    }
+}
+
 /// Type/stack checking error.
 #[derive(Debug, Clone)]
 pub struct CheckError {

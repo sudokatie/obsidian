@@ -35,18 +35,7 @@ impl CodeGen {
             self.word_indices.insert(word.name.clone(), i as u32);
         }
 
-        // Memory section (1 page = 64KB)
-        let mut memory = MemorySection::new();
-        memory.memory(MemoryType {
-            minimum: 1,
-            maximum: Some(16),
-            memory64: false,
-            shared: false,
-            page_size_log2: None,
-        });
-        module.section(&memory);
-
-        // Type section
+        // Type section (must come first)
         let mut types = TypeSection::new();
         for word in &program.words {
             let params = self.effect_to_params(&word.effect.inputs);
@@ -82,6 +71,17 @@ impl CodeGen {
         let start_type_idx = self.type_indices[&start_sig];
         functions.function(start_type_idx);
         module.section(&functions);
+
+        // Memory section (1 page = 64KB)
+        let mut memory = MemorySection::new();
+        memory.memory(MemoryType {
+            minimum: 1,
+            maximum: Some(16),
+            memory64: false,
+            shared: false,
+            page_size_log2: None,
+        });
+        module.section(&memory);
 
         // Export section
         let mut exports = ExportSection::new();
