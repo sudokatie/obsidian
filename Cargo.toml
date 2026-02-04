@@ -1,0 +1,10 @@
+[package]
+name = "obsidian"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.5.57", features = ["derive"] }
+rustyline = "17.0.2"
+wasm-encoder = "0.244.0"
+wasmtime = "40.0.3"
