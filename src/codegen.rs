@@ -3,7 +3,8 @@ use crate::error::CodeGenError;
 use std::collections::HashMap;
 use wasm_encoder::{
     CodeSection, ExportKind, ExportSection, Function, FunctionSection,
-    Instruction, MemorySection, MemoryType, Module, TypeSection, ValType,
+    GlobalSection, GlobalType, Instruction, MemorySection, MemoryType, 
+    Module, TypeSection, ValType,
 };
 
 /// WASM code generator for Obsidian programs.
@@ -82,6 +83,19 @@ impl CodeGen {
             page_size_log2: None,
         });
         module.section(&memory);
+
+        // Global section: heap pointer for alloc
+        // Heap starts at 0x1000 (4096), after stack area
+        let mut globals = GlobalSection::new();
+        globals.global(
+            GlobalType {
+                val_type: ValType::I32,
+                mutable: true,
+                shared: false,
+            },
+            &wasm_encoder::ConstExpr::i32_const(0x1000),
+        );
+        module.section(&globals);
 
         // Export section
         let mut exports = ExportSection::new();
@@ -517,8 +531,20 @@ impl CodeGen {
                 }));
             }
             "alloc" => {
-                // Simplified: no-op for now
-                // TODO: bump allocator
+                // Bump allocator: (size -- addr)
+                // Global 0 is heap pointer (starts at 0x1000)
+                // 1. Save current heap ptr as return value
+                // 2. Add size to heap ptr
+                // 3. Return old heap ptr
+                func.instruction(&Instruction::I32WrapI64);    // convert size to i32
+                func.instruction(&Instruction::LocalSet(t0));  // save size
+                func.instruction(&Instruction::GlobalGet(0));  // get heap ptr
+                func.instruction(&Instruction::LocalTee(t1));  // save old ptr, keep on stack for return
+                func.instruction(&Instruction::LocalGet(t0));  // push size
+                func.instruction(&Instruction::I32Add);        // old_ptr + size
+                func.instruction(&Instruction::GlobalSet(0));  // store new heap ptr
+                func.instruction(&Instruction::LocalGet(t1));  // push old ptr as return (i32)
+                func.instruction(&Instruction::I64ExtendI32U); // extend to i64 for stack consistency
             }
 
             // IO (no-ops in pure WASM)
