@@ -91,6 +91,14 @@ fn test_fibonacci_wasm_valid() {
     assert!(validate_wasm(&wasm), "fibonacci.obs should produce valid WASM");
 }
 
+// --- Compilation Tests (additional) ---
+
+#[test]
+fn test_fizzbuzz_compiles() {
+    let result = compile_file("examples/fizzbuzz.obs");
+    assert!(result.is_ok(), "fizzbuzz.obs should compile: {:?}", result.err());
+}
+
 // --- Size Tests ---
 
 #[test]

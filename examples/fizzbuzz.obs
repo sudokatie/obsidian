@@ -1,0 +1,28 @@
+-- FizzBuzz: classic programming challenge
+-- Print numbers 1-100, replacing multiples of 3 with "Fizz",
+-- multiples of 5 with "Buzz", and multiples of both with "FizzBuzz"
+
+def fizzbuzz (n --)
+  dup 15 mod 0 = if
+    drop "FizzBuzz" print
+  else
+    dup 3 mod 0 = if
+      drop "Fizz" print
+    else
+      dup 5 mod 0 = if
+        drop "Buzz" print
+      else
+        print
+      end
+    end
+  end
+end
+
+def main (--)
+  1
+  while dup 100 <= do
+    dup fizzbuzz
+    1 +
+  end
+  drop
+end

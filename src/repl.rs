@@ -17,6 +17,8 @@ pub fn run() -> i32 {
     };
 
     let mut checker = Checker::new();
+    #[allow(unused)]
+    let mut stack: Vec<String> = Vec::new(); // For future interpreter mode
 
     loop {
         let line = match rl.readline("> ") {
@@ -42,11 +44,23 @@ pub fn run() -> i32 {
                     println!("Commands:");
                     println!("  :help, :h   Show this help");
                     println!("  :quit, :q   Exit REPL");
+                    println!("  :stack      Display current stack");
                     println!("  :clear      Clear screen");
                     println!("\nEnter Obsidian code to evaluate.");
                 }
+                ":stack" => {
+                    if stack.is_empty() {
+                        println!("(empty)");
+                    } else {
+                        println!("Stack ({} items):", stack.len());
+                        for (i, item) in stack.iter().rev().enumerate() {
+                            println!("  {}: {}", stack.len() - i - 1, item);
+                        }
+                    }
+                }
                 ":clear" => {
                     print!("\x1b[2J\x1b[H");
+                    stack.clear();
                 }
                 _ => {
                     println!("Unknown command: {}", trimmed);

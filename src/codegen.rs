@@ -142,12 +142,19 @@ impl CodeGen {
     fn generate_word(&self, word: &WordDef) -> Result<Function, CodeGenError> {
         let num_params = word.effect.inputs.len() as u32;
         
-        // We need locals for stack manipulation
-        // For now, use one local per stack slot
-        let mut func = Function::new(vec![]);
+        // Allocate scratch locals for stack manipulation
+        // We need locals for operations like swap, over, rot, etc.
+        // 8 i64 locals should be enough for most operations
+        let locals = vec![
+            (8, ValType::I64),  // 8 scratch locals for stack ops
+        ];
+        let mut func = Function::new(locals);
+        
+        // Scratch locals start after params
+        let scratch_base = num_params;
         
         // Generate body
-        self.generate_body(&mut func, &word.body, num_params)?;
+        self.generate_body(&mut func, &word.body, scratch_base)?;
         
         // End function
         func.instruction(&Instruction::End);
@@ -172,23 +179,23 @@ impl CodeGen {
         &self,
         func: &mut Function,
         body: &[Expr],
-        _num_params: u32,
+        scratch_base: u32,
     ) -> Result<(), CodeGenError> {
         for expr in body {
-            self.generate_expr(func, expr)?;
+            self.generate_expr(func, expr, scratch_base)?;
         }
         Ok(())
     }
 
     /// Generate code for a single expression.
-    fn generate_expr(&self, func: &mut Function, expr: &Expr) -> Result<(), CodeGenError> {
+    fn generate_expr(&self, func: &mut Function, expr: &Expr, scratch_base: u32) -> Result<(), CodeGenError> {
         match expr {
             Expr::Literal(lit) => {
                 self.generate_literal(func, lit);
             }
             
             Expr::Word { name, .. } => {
-                self.generate_word_call(func, name)?;
+                self.generate_word_call(func, name, scratch_base)?;
             }
             
             Expr::If { then_branch, else_branch, .. } => {
@@ -198,11 +205,11 @@ impl CodeGen {
                 // Determine result type based on branch effects
                 // For simplicity, assume branches are balanced
                 func.instruction(&Instruction::If(wasm_encoder::BlockType::Empty));
-                self.generate_body(func, then_branch, 0)?;
+                self.generate_body(func, then_branch, scratch_base)?;
                 
                 if let Some(else_body) = else_branch {
                     func.instruction(&Instruction::Else);
-                    self.generate_body(func, else_body, 0)?;
+                    self.generate_body(func, else_body, scratch_base)?;
                 }
                 
                 func.instruction(&Instruction::End);
@@ -223,14 +230,14 @@ impl CodeGen {
                 func.instruction(&Instruction::Loop(wasm_encoder::BlockType::Empty));
                 
                 // Generate condition
-                self.generate_body(func, cond, 0)?;
+                self.generate_body(func, cond, scratch_base)?;
                 
                 // If false (0), exit loop
                 func.instruction(&Instruction::I32Eqz);
                 func.instruction(&Instruction::BrIf(1)); // br to outer block
                 
                 // Generate body
-                self.generate_body(func, body, 0)?;
+                self.generate_body(func, body, scratch_base)?;
                 
                 // Loop back
                 func.instruction(&Instruction::Br(0)); // br to loop start
@@ -241,28 +248,35 @@ impl CodeGen {
             
             Expr::Times { body, .. } => {
                 // WASM times pattern (count already on stack):
-                // block $exit
-                //   loop $loop
-                //     local.get $count
-                //     i32.eqz
-                //     br_if $exit
-                //     <body>
-                //     local.get $count
-                //     i32.const 1
-                //     i32.sub
-                //     local.set $count
-                //     br $loop
-                //   end
-                // end
+                // Store count in scratch local, loop while > 0
+                let count_local = scratch_base;
                 
-                // For now, simplified version using the stack
-                // This is tricky - we need a local for the counter
-                // TODO: Proper local allocation
+                // Wrap to i64 for consistency (count comes as i64 literal)
+                func.instruction(&Instruction::LocalSet(count_local));
                 
-                // Simple infinite-loop avoidance: just do body once for now
-                // Full implementation needs local allocation
-                func.instruction(&Instruction::Drop); // drop count
-                self.generate_body(func, body, 0)?;
+                func.instruction(&Instruction::Block(wasm_encoder::BlockType::Empty));
+                func.instruction(&Instruction::Loop(wasm_encoder::BlockType::Empty));
+                
+                // Check if count <= 0, exit if so
+                func.instruction(&Instruction::LocalGet(count_local));
+                func.instruction(&Instruction::I64Const(0));
+                func.instruction(&Instruction::I64LeS);
+                func.instruction(&Instruction::BrIf(1)); // exit outer block
+                
+                // Execute body
+                self.generate_body(func, body, scratch_base)?;
+                
+                // Decrement counter
+                func.instruction(&Instruction::LocalGet(count_local));
+                func.instruction(&Instruction::I64Const(1));
+                func.instruction(&Instruction::I64Sub);
+                func.instruction(&Instruction::LocalSet(count_local));
+                
+                // Loop back
+                func.instruction(&Instruction::Br(0));
+                
+                func.instruction(&Instruction::End); // end loop
+                func.instruction(&Instruction::End); // end block
             }
         }
         Ok(())
@@ -290,33 +304,67 @@ impl CodeGen {
     }
 
     /// Generate code for a word/builtin call.
-    fn generate_word_call(&self, func: &mut Function, name: &str) -> Result<(), CodeGenError> {
+    fn generate_word_call(&self, func: &mut Function, name: &str, scratch_base: u32) -> Result<(), CodeGenError> {
+        // Scratch locals: scratch_base+0 through scratch_base+7
+        let t0 = scratch_base;
+        let t1 = scratch_base + 1;
+        let t2 = scratch_base + 2;
+        let t3 = scratch_base + 3;
+        
         match name {
-            // Stack operations
+            // Stack operations - using scratch locals
             "dup" => {
-                // WASM doesn't have dup, need local
-                // For i64 values on stack: use temporary local
-                // Simplified: assume value is i64
-                // TODO: proper local management
-                func.instruction(&Instruction::LocalGet(0)); // get param 0 again (hack)
+                // (a -- a a): save top, push twice
+                func.instruction(&Instruction::LocalTee(t0));
+                func.instruction(&Instruction::LocalGet(t0));
             }
             "drop" => {
                 func.instruction(&Instruction::Drop);
             }
             "swap" => {
-                // WASM has no swap, need locals
-                // TODO: implement with locals
+                // (a b -- b a)
+                func.instruction(&Instruction::LocalSet(t0)); // pop b
+                func.instruction(&Instruction::LocalSet(t1)); // pop a
+                func.instruction(&Instruction::LocalGet(t0)); // push b
+                func.instruction(&Instruction::LocalGet(t1)); // push a
             }
             "over" => {
                 // (a b -- a b a)
-                // TODO: implement with locals
+                func.instruction(&Instruction::LocalSet(t0)); // pop b
+                func.instruction(&Instruction::LocalTee(t1)); // save a, keep on stack
+                func.instruction(&Instruction::LocalGet(t0)); // push b back
+                func.instruction(&Instruction::LocalGet(t1)); // push copy of a
             }
-            "rot" | "nip" | "tuck" => {
-                // TODO: implement with locals
+            "rot" => {
+                // (a b c -- b c a)
+                func.instruction(&Instruction::LocalSet(t0)); // pop c
+                func.instruction(&Instruction::LocalSet(t1)); // pop b
+                func.instruction(&Instruction::LocalSet(t2)); // pop a
+                func.instruction(&Instruction::LocalGet(t1)); // push b
+                func.instruction(&Instruction::LocalGet(t0)); // push c
+                func.instruction(&Instruction::LocalGet(t2)); // push a
+            }
+            "nip" => {
+                // (a b -- b)
+                func.instruction(&Instruction::LocalSet(t0)); // pop b
+                func.instruction(&Instruction::Drop);         // drop a
+                func.instruction(&Instruction::LocalGet(t0)); // push b
+            }
+            "tuck" => {
+                // (a b -- b a b)
+                func.instruction(&Instruction::LocalSet(t0)); // pop b
+                func.instruction(&Instruction::LocalSet(t1)); // pop a
+                func.instruction(&Instruction::LocalGet(t0)); // push b
+                func.instruction(&Instruction::LocalGet(t1)); // push a
+                func.instruction(&Instruction::LocalGet(t0)); // push b
             }
             "2dup" => {
-                // (a b -- a b a b) - requires locals
-                // TODO: implement with locals
+                // (a b -- a b a b)
+                func.instruction(&Instruction::LocalSet(t0)); // pop b
+                func.instruction(&Instruction::LocalTee(t1)); // save a, keep on stack
+                func.instruction(&Instruction::LocalGet(t0)); // push b
+                func.instruction(&Instruction::LocalGet(t1)); // push a copy
+                func.instruction(&Instruction::LocalGet(t0)); // push b copy
             }
             "2drop" => {
                 // (a b --)
@@ -324,8 +372,15 @@ impl CodeGen {
                 func.instruction(&Instruction::Drop);
             }
             "2swap" => {
-                // (a b c d -- c d a b) - requires locals
-                // TODO: implement with locals
+                // (a b c d -- c d a b)
+                func.instruction(&Instruction::LocalSet(t0)); // pop d
+                func.instruction(&Instruction::LocalSet(t1)); // pop c
+                func.instruction(&Instruction::LocalSet(t2)); // pop b
+                func.instruction(&Instruction::LocalSet(t3)); // pop a
+                func.instruction(&Instruction::LocalGet(t1)); // push c
+                func.instruction(&Instruction::LocalGet(t0)); // push d
+                func.instruction(&Instruction::LocalGet(t3)); // push a
+                func.instruction(&Instruction::LocalGet(t2)); // push b
             }
 
             // Arithmetic (i64 operations)
@@ -339,15 +394,41 @@ impl CodeGen {
                 func.instruction(&Instruction::I64Mul);
             }
             "abs" => {
-                // abs for i64: if negative, negate
-                // Simplified: use select or if
-                // TODO: proper implementation
+                // abs for i64: if val < 0 then -val else val
+                func.instruction(&Instruction::LocalTee(t0));
+                func.instruction(&Instruction::I64Const(0));
+                func.instruction(&Instruction::I64LtS);
+                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(ValType::I64)));
+                func.instruction(&Instruction::LocalGet(t0));
+                func.instruction(&Instruction::I64Const(-1));
+                func.instruction(&Instruction::I64Mul);
+                func.instruction(&Instruction::Else);
+                func.instruction(&Instruction::LocalGet(t0));
+                func.instruction(&Instruction::End);
             }
             "min" => {
-                // TODO: implement with select
+                // (a b -- min): if a < b then a else b
+                func.instruction(&Instruction::LocalSet(t0)); // pop b
+                func.instruction(&Instruction::LocalTee(t1)); // save a
+                func.instruction(&Instruction::LocalGet(t0)); // push b
+                func.instruction(&Instruction::I64LtS);       // a < b?
+                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(ValType::I64)));
+                func.instruction(&Instruction::LocalGet(t1)); // a
+                func.instruction(&Instruction::Else);
+                func.instruction(&Instruction::LocalGet(t0)); // b
+                func.instruction(&Instruction::End);
             }
             "max" => {
-                // TODO: implement with select
+                // (a b -- max): if a > b then a else b
+                func.instruction(&Instruction::LocalSet(t0)); // pop b
+                func.instruction(&Instruction::LocalTee(t1)); // save a
+                func.instruction(&Instruction::LocalGet(t0)); // push b
+                func.instruction(&Instruction::I64GtS);       // a > b?
+                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(ValType::I64)));
+                func.instruction(&Instruction::LocalGet(t1)); // a
+                func.instruction(&Instruction::Else);
+                func.instruction(&Instruction::LocalGet(t0)); // b
+                func.instruction(&Instruction::End);
             }
 
             // Comparison (produce i32 bool)
