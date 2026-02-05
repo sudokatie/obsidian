@@ -216,6 +216,9 @@ impl Parser {
             TokenKind::Rot => self.word_expr("rot"),
             TokenKind::Nip => self.word_expr("nip"),
             TokenKind::Tuck => self.word_expr("tuck"),
+            TokenKind::Dup2 => self.word_expr("2dup"),
+            TokenKind::Drop2 => self.word_expr("2drop"),
+            TokenKind::Swap2 => self.word_expr("2swap"),
             TokenKind::And => self.word_expr("and"),
             TokenKind::Or => self.word_expr("or"),
             TokenKind::Not => self.word_expr("not"),
@@ -227,6 +230,8 @@ impl Parser {
             TokenKind::Shr => self.word_expr("shr"),
             TokenKind::Fetch => self.word_expr("@"),
             TokenKind::Store => self.word_expr("!"),
+            TokenKind::CFetch => self.word_expr("c@"),
+            TokenKind::CStore => self.word_expr("c!"),
             TokenKind::Alloc => self.word_expr("alloc"),
             TokenKind::Print => self.word_expr("print"),
             TokenKind::Emit => self.word_expr("emit"),
@@ -563,5 +568,17 @@ mod tests {
     fn test_comparison_ops() {
         let prog = parse("def test (--) = != < > <= >= end").unwrap();
         assert_eq!(prog.words[0].body.len(), 6);
+    }
+    
+    #[test]
+    fn test_2dup_2drop_2swap() {
+        let prog = parse("def test (--) 2dup 2drop 2swap end").unwrap();
+        assert_eq!(prog.words[0].body.len(), 3);
+    }
+    
+    #[test]
+    fn test_cfetch_cstore() {
+        let prog = parse("def test (--) c@ c! end").unwrap();
+        assert_eq!(prog.words[0].body.len(), 2);
     }
 }

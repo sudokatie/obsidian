@@ -311,7 +311,20 @@ impl CodeGen {
                 // (a b -- a b a)
                 // TODO: implement with locals
             }
-            "rot" | "nip" | "tuck" | "2dup" | "2drop" | "2swap" => {
+            "rot" | "nip" | "tuck" => {
+                // TODO: implement with locals
+            }
+            "2dup" => {
+                // (a b -- a b a b) - requires locals
+                // TODO: implement with locals
+            }
+            "2drop" => {
+                // (a b --)
+                func.instruction(&Instruction::Drop);
+                func.instruction(&Instruction::Drop);
+            }
+            "2swap" => {
+                // (a b c d -- c d a b) - requires locals
                 // TODO: implement with locals
             }
 

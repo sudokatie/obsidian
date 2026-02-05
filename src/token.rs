@@ -59,6 +59,9 @@ pub enum TokenKind {
     Rot,
     Nip,
     Tuck,
+    Dup2,
+    Drop2,
+    Swap2,
     
     // Logic operations
     And,
@@ -139,6 +142,9 @@ impl fmt::Display for TokenKind {
             TokenKind::Rot => write!(f, "rot"),
             TokenKind::Nip => write!(f, "nip"),
             TokenKind::Tuck => write!(f, "tuck"),
+            TokenKind::Dup2 => write!(f, "2dup"),
+            TokenKind::Drop2 => write!(f, "2drop"),
+            TokenKind::Swap2 => write!(f, "2swap"),
             TokenKind::And => write!(f, "and"),
             TokenKind::Or => write!(f, "or"),
             TokenKind::Not => write!(f, "not"),

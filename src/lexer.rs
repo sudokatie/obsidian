@@ -155,8 +155,40 @@ impl<'a> Lexer<'a> {
             // String literal
             '"' => return self.read_string(start_pos, start_line, start_col),
             
-            // Number literal
-            '0'..='9' => return self.read_number(c, start_pos, start_line, start_col),
+            // c@ and c! (byte fetch/store)
+            'c' => {
+                if self.peek() == Some('@') {
+                    self.advance();
+                    TokenKind::CFetch
+                } else if self.peek() == Some('!') {
+                    self.advance();
+                    TokenKind::CStore
+                } else {
+                    return self.read_ident(c, start_pos, start_line, start_col);
+                }
+            }
+            
+            // Number literal (including 2dup, 2drop, 2swap)
+            '0'..='9' => {
+                // Check for 2dup, 2drop, 2swap
+                if c == '2' {
+                    let next_chars: String = self.chars[self.pos..].iter().take(4).collect();
+                    if next_chars.starts_with("dup") && !self.chars.get(self.pos + 3).map(|c| c.is_alphanumeric() || *c == '_').unwrap_or(false) {
+                        self.pos += 3;
+                        self.col += 3;
+                        return Ok(Token::new(TokenKind::Dup2, Span::new(start_pos, self.pos, start_line, start_col)));
+                    } else if next_chars.starts_with("drop") && !self.chars.get(self.pos + 4).map(|c| c.is_alphanumeric() || *c == '_').unwrap_or(false) {
+                        self.pos += 4;
+                        self.col += 4;
+                        return Ok(Token::new(TokenKind::Drop2, Span::new(start_pos, self.pos, start_line, start_col)));
+                    } else if next_chars.starts_with("swap") && !self.chars.get(self.pos + 4).map(|c| c.is_alphanumeric() || *c == '_').unwrap_or(false) {
+                        self.pos += 4;
+                        self.col += 4;
+                        return Ok(Token::new(TokenKind::Swap2, Span::new(start_pos, self.pos, start_line, start_col)));
+                    }
+                }
+                return self.read_number(c, start_pos, start_line, start_col);
+            }
             
             // Identifier or keyword
             'a'..='z' | 'A'..='Z' | '_' => {
@@ -811,6 +843,46 @@ mod tests {
             TokenKind::Bnot,
             TokenKind::Shl,
             TokenKind::Shr,
+        ]);
+    }
+    
+    #[test]
+    fn test_2dup_2drop_2swap() {
+        let kinds = token_kinds("2dup 2drop 2swap");
+        assert_eq!(kinds, vec![
+            TokenKind::Dup2,
+            TokenKind::Drop2,
+            TokenKind::Swap2,
+        ]);
+    }
+    
+    #[test]
+    fn test_2_not_keyword() {
+        // Plain number 2 should still work
+        let kinds = token_kinds("2 23 200");
+        assert_eq!(kinds, vec![
+            TokenKind::Integer(2),
+            TokenKind::Integer(23),
+            TokenKind::Integer(200),
+        ]);
+    }
+    
+    #[test]
+    fn test_cfetch_cstore() {
+        let kinds = token_kinds("c@ c!");
+        assert_eq!(kinds, vec![
+            TokenKind::CFetch,
+            TokenKind::CStore,
+        ]);
+    }
+    
+    #[test]
+    fn test_c_identifier() {
+        // Plain 'c' followed by something other than @ or ! should be identifier
+        let kinds = token_kinds("count c");
+        assert_eq!(kinds, vec![
+            TokenKind::Ident("count".to_string()),
+            TokenKind::Ident("c".to_string()),
         ]);
     }
 }
