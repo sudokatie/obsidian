@@ -180,6 +180,18 @@ cargo test                    # All tests
 cargo test --test integration # Integration tests only
 ```
 
+## Roadmap
+
+### v0.2 (Planned)
+- [ ] Standard library (abs, min, max, pow, stack ops, memory ops)
+- [ ] String interning and memory layout
+
+### v0.3 (Planned)
+- [ ] Debugging tools (stack visualization, stepping)
+- [ ] IDE integration (VS Code extension)
+
+See FEATURE-BACKLOG.md in the clawd repo for detailed acceptance criteria.
+
 ## Technical Details
 
 - Compiles directly to WASM binary (not WAT text format)
