@@ -125,6 +125,70 @@ obsidian fmt <file>                      Format source
 :quit     Exit
 ```
 
+## Built-in Words
+
+### Stack Operations
+
+| Word | Effect | Description |
+|------|--------|-------------|
+| `dup` | `(a -- a a)` | Duplicate top |
+| `drop` | `(a --)` | Discard top |
+| `swap` | `(a b -- b a)` | Swap top two |
+| `over` | `(a b -- a b a)` | Copy second to top |
+| `rot` | `(a b c -- b c a)` | Rotate top three |
+| `-rot` | `(a b c -- c a b)` | Reverse rotate |
+| `nip` | `(a b -- b)` | Drop second |
+| `tuck` | `(a b -- b a b)` | Copy top under second |
+| `2dup` | `(a b -- a b a b)` | Duplicate pair |
+| `2drop` | `(a b --)` | Drop pair |
+| `2swap` | `(a b c d -- c d a b)` | Swap pairs |
+| `2over` | `(a b c d -- a b c d a b)` | Copy second pair |
+
+### Arithmetic
+
+| Word | Effect | Description |
+|------|--------|-------------|
+| `+` | `(a b -- sum)` | Add |
+| `-` | `(a b -- diff)` | Subtract |
+| `*` | `(a b -- prod)` | Multiply |
+| `/` | `(a b -- quot)` | Divide |
+| `mod` | `(a b -- rem)` | Remainder |
+| `negate` | `(n -- -n)` | Negate |
+| `abs` | `(n -- abs)` | Absolute value |
+| `min` | `(a b -- min)` | Minimum |
+| `max` | `(a b -- max)` | Maximum |
+| `clamp` | `(val lo hi -- clamped)` | Clamp to range |
+| `sqr` | `(n -- n*n)` | Square |
+
+### Comparison
+
+| Word | Effect | Description |
+|------|--------|-------------|
+| `=` | `(a b -- bool)` | Equal |
+| `!=` | `(a b -- bool)` | Not equal |
+| `<` | `(a b -- bool)` | Less than |
+| `>` | `(a b -- bool)` | Greater than |
+| `<=` | `(a b -- bool)` | Less or equal |
+| `>=` | `(a b -- bool)` | Greater or equal |
+
+### Logic
+
+| Word | Effect | Description |
+|------|--------|-------------|
+| `and` | `(a b -- a&b)` | Logical and |
+| `or` | `(a b -- a|b)` | Logical or |
+| `not` | `(a -- !a)` | Logical not |
+
+### Memory
+
+| Word | Effect | Description |
+|------|--------|-------------|
+| `@` | `(addr -- val)` | Fetch i64 from address |
+| `!` | `(val addr --)` | Store i64 at address |
+| `c@` | `(addr -- byte)` | Fetch byte |
+| `c!` | `(byte addr --)` | Store byte |
+| `alloc` | `(size -- addr)` | Allocate memory |
+
 ## Examples
 
 ### Factorial

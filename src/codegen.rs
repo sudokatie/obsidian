@@ -396,6 +396,28 @@ impl CodeGen {
                 func.instruction(&Instruction::LocalGet(t3)); // push a
                 func.instruction(&Instruction::LocalGet(t2)); // push b
             }
+            "2over" => {
+                // (a b c d -- a b c d a b)
+                func.instruction(&Instruction::LocalSet(t0)); // pop d
+                func.instruction(&Instruction::LocalSet(t1)); // pop c
+                func.instruction(&Instruction::LocalSet(t2)); // pop b
+                func.instruction(&Instruction::LocalSet(t3)); // pop a
+                func.instruction(&Instruction::LocalGet(t3)); // push a
+                func.instruction(&Instruction::LocalGet(t2)); // push b
+                func.instruction(&Instruction::LocalGet(t1)); // push c
+                func.instruction(&Instruction::LocalGet(t0)); // push d
+                func.instruction(&Instruction::LocalGet(t3)); // push a copy
+                func.instruction(&Instruction::LocalGet(t2)); // push b copy
+            }
+            "-rot" => {
+                // (a b c -- c a b) - reverse rotation
+                func.instruction(&Instruction::LocalSet(t0)); // pop c
+                func.instruction(&Instruction::LocalSet(t1)); // pop b
+                func.instruction(&Instruction::LocalSet(t2)); // pop a
+                func.instruction(&Instruction::LocalGet(t0)); // push c
+                func.instruction(&Instruction::LocalGet(t2)); // push a
+                func.instruction(&Instruction::LocalGet(t1)); // push b
+            }
 
             // Arithmetic (i64 operations)
             "+" => { func.instruction(&Instruction::I64Add); }
@@ -443,6 +465,37 @@ impl CodeGen {
                 func.instruction(&Instruction::Else);
                 func.instruction(&Instruction::LocalGet(t0)); // b
                 func.instruction(&Instruction::End);
+            }
+            "clamp" => {
+                // (val low high -- clamped): clamp val to [low, high]
+                // Implementation: max(low, min(high, val))
+                func.instruction(&Instruction::LocalSet(t0)); // pop high
+                func.instruction(&Instruction::LocalSet(t1)); // pop low
+                func.instruction(&Instruction::LocalTee(t2)); // save val
+                // min(high, val)
+                func.instruction(&Instruction::LocalGet(t0)); // push high
+                func.instruction(&Instruction::I64LtS);       // val < high?
+                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(ValType::I64)));
+                func.instruction(&Instruction::LocalGet(t2)); // val
+                func.instruction(&Instruction::Else);
+                func.instruction(&Instruction::LocalGet(t0)); // high
+                func.instruction(&Instruction::End);
+                func.instruction(&Instruction::LocalSet(t3)); // save min_result
+                // max(low, min_result)
+                func.instruction(&Instruction::LocalGet(t1)); // push low
+                func.instruction(&Instruction::LocalGet(t3)); // push min_result
+                func.instruction(&Instruction::I64GtS);       // low > min_result?
+                func.instruction(&Instruction::If(wasm_encoder::BlockType::Result(ValType::I64)));
+                func.instruction(&Instruction::LocalGet(t1)); // low
+                func.instruction(&Instruction::Else);
+                func.instruction(&Instruction::LocalGet(t3)); // min_result
+                func.instruction(&Instruction::End);
+            }
+            "sqr" => {
+                // (n -- n*n): square
+                func.instruction(&Instruction::LocalTee(t0));
+                func.instruction(&Instruction::LocalGet(t0));
+                func.instruction(&Instruction::I64Mul);
             }
 
             // Comparison (produce i32 bool)
