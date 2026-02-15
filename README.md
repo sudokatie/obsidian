@@ -248,7 +248,7 @@ cargo test --test integration # Integration tests only
 
 ### v0.2 (Planned)
 - [ ] Standard library (abs, min, max, pow, stack ops, memory ops)
-- [ ] String interning and memory layout
+- [x] String interning and memory layout
 
 ### v0.3 (Planned)
 - [ ] Debugging tools (stack visualization, stepping)
