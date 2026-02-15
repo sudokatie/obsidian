@@ -167,3 +167,67 @@ end
     let result = checker.check(&program);
     assert!(result.is_err(), "effect mismatch should cause error");
 }
+
+// --- String Interning Tests ---
+
+#[test]
+fn test_string_interning() {
+    // Test that string literals are properly interned in the data section
+    let source = r#"
+def greet (-- str)
+  "Hello, World!"
+end
+
+def main (--)
+  greet drop
+end
+"#;
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("lexer ok");
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().expect("parser ok");
+    let mut checker = Checker::new();
+    checker.check(&program).expect("checker ok");
+    let mut codegen = CodeGen::new();
+    let wasm = codegen.generate(&program).expect("codegen ok");
+    
+    // Validate WASM
+    assert!(validate_wasm(&wasm), "should produce valid WASM");
+    
+    // The WASM should contain the string data
+    // String format: [len: 4 bytes][data][null]
+    // "Hello, World!" is 13 chars, so data section should have at least 18 bytes
+    assert!(wasm.len() > 100, "WASM should be substantial");
+    
+    // Check that the string data appears in the binary
+    let hello_bytes = b"Hello, World!";
+    let contains_string = wasm.windows(hello_bytes.len()).any(|w| w == hello_bytes);
+    assert!(contains_string, "WASM should contain the string literal");
+}
+
+#[test]
+fn test_string_deduplication() {
+    // Test that identical strings are deduplicated
+    let source = r#"
+def a (-- str) "same" end
+def b (-- str) "same" end
+def c (-- str) "same" end
+def main (--)
+  a drop b drop c drop
+end
+"#;
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("lexer ok");
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().expect("parser ok");
+    let mut checker = Checker::new();
+    checker.check(&program).expect("checker ok");
+    let mut codegen = CodeGen::new();
+    let wasm = codegen.generate(&program).expect("codegen ok");
+    
+    // Count occurrences of "same" in the binary
+    // Should only appear once due to interning
+    let same_bytes = b"same";
+    let count = wasm.windows(same_bytes.len()).filter(|w| *w == same_bytes).count();
+    assert_eq!(count, 1, "identical strings should be deduplicated, found {} copies", count);
+}

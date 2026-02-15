@@ -2,7 +2,7 @@ use crate::ast::{Expr, Literal, Program, Type, WordDef};
 use crate::error::CodeGenError;
 use std::collections::HashMap;
 use wasm_encoder::{
-    CodeSection, ExportKind, ExportSection, Function, FunctionSection,
+    CodeSection, DataSection, ExportKind, ExportSection, Function, FunctionSection,
     GlobalSection, GlobalType, Instruction, MemorySection, MemoryType, 
     Module, TypeSection, ValType,
 };
@@ -15,6 +15,10 @@ pub struct CodeGen {
     type_indices: HashMap<(Vec<ValType>, Vec<ValType>), u32>,
     /// Next available type index.
     next_type_index: u32,
+    /// String literal -> memory offset mapping (for interning).
+    string_offsets: HashMap<String, u32>,
+    /// Total size of interned string data.
+    string_data_size: u32,
 }
 
 impl CodeGen {
@@ -24,12 +28,85 @@ impl CodeGen {
             word_indices: HashMap::new(),
             type_indices: HashMap::new(),
             next_type_index: 0,
+            string_offsets: HashMap::new(),
+            string_data_size: 0,
         }
+    }
+    
+    /// Collect all string literals from the program and assign memory offsets.
+    /// String format in memory: [length: u32][data: bytes][null: u8]
+    fn collect_strings(&mut self, program: &Program) {
+        let mut offset: u32 = 0;
+        
+        for word in &program.words {
+            self.collect_strings_from_exprs(&word.body, &mut offset);
+        }
+        
+        self.string_data_size = offset;
+    }
+    
+    /// Recursively collect strings from expressions.
+    fn collect_strings_from_exprs(&mut self, exprs: &[Expr], offset: &mut u32) {
+        for expr in exprs {
+            match expr {
+                Expr::Literal(Literal::String(s)) => {
+                    if !self.string_offsets.contains_key(s) {
+                        // String layout: [len: 4 bytes][data][null: 1 byte]
+                        self.string_offsets.insert(s.clone(), *offset);
+                        *offset += 4 + s.len() as u32 + 1;
+                        // Align to 4 bytes for next string
+                        *offset = (*offset + 3) & !3;
+                    }
+                }
+                Expr::If { then_branch, else_branch, .. } => {
+                    self.collect_strings_from_exprs(then_branch, offset);
+                    if let Some(else_exprs) = else_branch {
+                        self.collect_strings_from_exprs(else_exprs, offset);
+                    }
+                }
+                Expr::While { cond, body, .. } => {
+                    self.collect_strings_from_exprs(cond, offset);
+                    self.collect_strings_from_exprs(body, offset);
+                }
+                Expr::Times { body, .. } => {
+                    self.collect_strings_from_exprs(body, offset);
+                }
+                _ => {}
+            }
+        }
+    }
+    
+    /// Build the data section containing all interned strings.
+    fn build_string_data(&self) -> Vec<u8> {
+        if self.string_offsets.is_empty() {
+            return Vec::new();
+        }
+        
+        // Create a buffer large enough for all strings
+        let mut data = vec![0u8; self.string_data_size as usize];
+        
+        for (s, &offset) in &self.string_offsets {
+            let offset = offset as usize;
+            let len = s.len() as u32;
+            
+            // Write length as little-endian u32
+            data[offset..offset + 4].copy_from_slice(&len.to_le_bytes());
+            
+            // Write string bytes
+            data[offset + 4..offset + 4 + s.len()].copy_from_slice(s.as_bytes());
+            
+            // Null terminator (already zeroed)
+        }
+        
+        data
     }
 
     /// Generate WASM binary from a program.
     pub fn generate(&mut self, program: &Program) -> Result<Vec<u8>, CodeGenError> {
         let mut module = Module::new();
+        
+        // Phase 0: Collect and intern all string literals
+        self.collect_strings(program);
         
         // Phase 1: Collect all word signatures and assign indices
         for (i, word) in program.words.iter().enumerate() {
@@ -85,7 +162,8 @@ impl CodeGen {
         module.section(&memory);
 
         // Global section: heap pointer for alloc
-        // Heap starts at 0x1000 (4096), after stack area
+        // Heap starts after string data, aligned to 0x1000 boundary
+        let heap_start = ((self.string_data_size + 0xFFF) & !0xFFF).max(0x1000);
         let mut globals = GlobalSection::new();
         globals.global(
             GlobalType {
@@ -93,7 +171,7 @@ impl CodeGen {
                 mutable: true,
                 shared: false,
             },
-            &wasm_encoder::ConstExpr::i32_const(0x1000),
+            &wasm_encoder::ConstExpr::i32_const(heap_start as i32),
         );
         module.section(&globals);
 
@@ -126,6 +204,19 @@ impl CodeGen {
         codes.function(&start_func);
         
         module.section(&codes);
+
+        // Data section: interned strings
+        if !self.string_offsets.is_empty() {
+            let string_data = self.build_string_data();
+            let mut data = DataSection::new();
+            // Active data segment at offset 0
+            data.active(
+                0, // memory index
+                &wasm_encoder::ConstExpr::i32_const(0),
+                string_data.iter().copied(),
+            );
+            module.section(&data);
+        }
 
         Ok(module.finish())
     }
@@ -308,11 +399,10 @@ impl CodeGen {
             Literal::Bool(b) => {
                 func.instruction(&Instruction::I32Const(if *b { 1 } else { 0 }));
             }
-            Literal::String(_s) => {
-                // Strings need to be stored in memory
-                // For now, just push address 0
-                // TODO: String interning and memory layout
-                func.instruction(&Instruction::I32Const(0));
+            Literal::String(s) => {
+                // Push the address of the interned string
+                let offset = self.string_offsets.get(s).copied().unwrap_or(0);
+                func.instruction(&Instruction::I32Const(offset as i32));
             }
         }
     }
