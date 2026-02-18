@@ -53,6 +53,9 @@ code --install-extension obsidian-lang-0.1.0.vsix
 | `times` | Times loop |
 | `square` | Square (dup *) |
 | `factorial` | Complete factorial example |
+| `fib` | Fibonacci example |
+| `print` | Print and pop top |
+| `prints` | Print entire stack |
 
 ## Example
 

@@ -73,5 +73,40 @@
       "end"
     ],
     "description": "Factorial word definition"
+  },
+  "Fibonacci": {
+    "prefix": "fib",
+    "body": [
+      "def fib (n -- fib-n)",
+      "  dup 1 <= if",
+      "    -- base case",
+      "  else",
+      "    dup 1 - fib",
+      "    swap 2 - fib",
+      "    +",
+      "  end",
+      "end"
+    ],
+    "description": "Fibonacci word definition"
+  },
+  "Swap and Drop": {
+    "prefix": "nip",
+    "body": "nip",
+    "description": "Drop second element (nip)"
+  },
+  "Over and Swap": {
+    "prefix": "tuck",
+    "body": "tuck",
+    "description": "Copy top under second (tuck)"
+  },
+  "Print Top": {
+    "prefix": "print",
+    "body": "print",
+    "description": "Print and pop top of stack"
+  },
+  "Print Stack": {
+    "prefix": "prints",
+    "body": ".s",
+    "description": "Print entire stack"
   }
 }
