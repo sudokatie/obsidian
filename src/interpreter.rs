@@ -32,23 +32,44 @@ pub struct Interpreter {
     pending: Vec<Expr>,
     /// Step mode enabled.
     stepping: bool,
+    /// Call stack for error traces.
+    call_stack: Vec<String>,
 }
 
-/// Interpreter error.
+/// Interpreter error with optional call stack.
 #[derive(Debug)]
 pub struct InterpError {
     pub message: String,
+    pub call_stack: Vec<String>,
 }
 
 impl std::fmt::Display for InterpError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.message)
+        write!(f, "{}", self.message)?;
+        if !self.call_stack.is_empty() {
+            writeln!(f, "\n\nCall stack:")?;
+            for (i, frame) in self.call_stack.iter().rev().enumerate() {
+                writeln!(f, "  {}: {}", i, frame)?;
+            }
+        }
+        Ok(())
     }
 }
 
 impl InterpError {
     fn new(msg: impl Into<String>) -> Self {
-        Self { message: msg.into() }
+        Self { 
+            message: msg.into(),
+            call_stack: Vec::new(),
+        }
+    }
+
+    #[allow(dead_code)]
+    fn with_stack(msg: impl Into<String>, stack: Vec<String>) -> Self {
+        Self {
+            message: msg.into(),
+            call_stack: stack,
+        }
     }
 
     fn stack_underflow(op: &str, need: usize, have: usize) -> Self {
@@ -65,6 +86,7 @@ impl Interpreter {
             trace: false,
             pending: Vec::new(),
             stepping: false,
+            call_stack: Vec::new(),
         }
     }
 
@@ -122,6 +144,12 @@ impl Interpreter {
     pub fn clear(&mut self) {
         self.stack.clear();
         self.pending.clear();
+        self.call_stack.clear();
+    }
+
+    /// Get the current call stack depth.
+    pub fn call_depth(&self) -> usize {
+        self.call_stack.len()
     }
 
     /// Load word definitions from a program.
@@ -198,7 +226,17 @@ impl Interpreter {
             if self.trace {
                 println!("  call {} -> (entering)", name);
             }
-            self.execute(&word.body)?;
+            self.call_stack.push(name.to_string());
+            let result = self.execute(&word.body);
+            self.call_stack.pop();
+            if let Err(mut e) = result {
+                // Attach call stack to error if not already present
+                if e.call_stack.is_empty() {
+                    e.call_stack = self.call_stack.clone();
+                    e.call_stack.push(name.to_string());
+                }
+                return Err(e);
+            }
             if self.trace {
                 println!("  call {} -> {} (returned)", name, self.format_stack());
             }
@@ -696,5 +734,61 @@ mod tests {
         interp.clear();
         assert!(!interp.has_pending());
         assert!(interp.stack().is_empty());
+    }
+
+    #[test]
+    fn test_call_depth() {
+        let mut interp = Interpreter::new();
+        assert_eq!(interp.call_depth(), 0);
+    }
+
+    #[test]
+    fn test_error_with_call_stack() {
+        use crate::ast::{WordDef, StackEffect};
+        
+        let mut interp = Interpreter::new();
+        
+        // Define a word that will cause an underflow
+        let bad_word = WordDef {
+            name: "bad".to_string(),
+            effect: StackEffect::empty(),
+            body: vec![make_word("dup")],  // dup on empty stack
+            span: Span::default(),
+        };
+        
+        // Define a word that calls bad
+        let caller = WordDef {
+            name: "caller".to_string(),
+            effect: StackEffect::empty(),
+            body: vec![make_word("bad")],
+            span: Span::default(),
+        };
+        
+        let program = crate::ast::Program {
+            words: vec![bad_word, caller],
+        };
+        interp.load_program(&program);
+        
+        // Call "caller" which calls "bad" which fails
+        let result = interp.execute(&[make_word("caller")]);
+        assert!(result.is_err());
+        
+        let err = result.unwrap_err();
+        assert!(err.message.contains("stack underflow"));
+        // Call stack should show the chain
+        assert!(!err.call_stack.is_empty());
+    }
+
+    #[test]
+    fn test_error_display_with_stack() {
+        let err = InterpError::with_stack(
+            "test error",
+            vec!["inner".to_string(), "outer".to_string()],
+        );
+        let display = format!("{}", err);
+        assert!(display.contains("test error"));
+        assert!(display.contains("Call stack:"));
+        assert!(display.contains("outer"));
+        assert!(display.contains("inner"));
     }
 }

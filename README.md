@@ -289,8 +289,8 @@ cargo test --test integration # Integration tests only
 - [x] Interactive interpreter in REPL
 - [x] Trace mode (stack after each operation)
 - [x] Step mode (execute one word at a time)
+- [x] Stack trace on error (shows call chain)
 - [ ] Breakpoints
-- [ ] Stack trace on error
 - [ ] IDE integration (VS Code extension)
 
 See FEATURE-BACKLOG.md in the clawd repo for detailed acceptance criteria.
