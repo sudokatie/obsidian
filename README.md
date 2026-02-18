@@ -290,7 +290,7 @@ cargo test --test integration # Integration tests only
 - [x] Trace mode (stack after each operation)
 - [x] Step mode (execute one word at a time)
 - [x] Stack trace on error (shows call chain)
-- [ ] Breakpoints
+- [x] Breakpoints (:break, :unbreak, :breakpoints, :continue)
 - [ ] IDE integration (VS Code extension)
 
 See FEATURE-BACKLOG.md in the clawd repo for detailed acceptance criteria.

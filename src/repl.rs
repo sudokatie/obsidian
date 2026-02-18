@@ -49,15 +49,19 @@ pub fn run() -> i32 {
                 ":quit" | ":q" => break,
                 ":help" | ":h" => {
                     println!("Commands:");
-                    println!("  :help, :h     Show this help");
-                    println!("  :quit, :q     Exit REPL");
-                    println!("  :stack, :s    Display current stack");
-                    println!("  :clear        Clear stack");
-                    println!("  :trace        Toggle trace mode (show stack after each op)");
-                    println!("  :step         Toggle step mode (execute one op at a time)");
-                    println!("  :n, :next     Execute next step (in step mode)");
-                    println!("  :run          Execute all remaining steps");
-                    println!("  :reset        Clear stack and defined words");
+                    println!("  :help, :h       Show this help");
+                    println!("  :quit, :q       Exit REPL");
+                    println!("  :stack, :s      Display current stack");
+                    println!("  :clear          Clear stack");
+                    println!("  :trace          Toggle trace mode (show stack after each op)");
+                    println!("  :step           Toggle step mode (execute one op at a time)");
+                    println!("  :n, :next       Execute next step (in step mode)");
+                    println!("  :run            Execute all remaining steps");
+                    println!("  :break <word>   Add breakpoint on word");
+                    println!("  :unbreak <word> Remove breakpoint");
+                    println!("  :breakpoints    List all breakpoints");
+                    println!("  :continue       Continue after breakpoint");
+                    println!("  :reset          Clear stack and defined words");
                     println!("\nEnter Obsidian code to evaluate.");
                     println!("\nExamples:");
                     println!("  5 3 +         Push 5 and 3, add them");
@@ -119,6 +123,43 @@ pub fn run() -> i32 {
                     interp = Interpreter::new();
                     checker = Checker::new();
                     println!("Interpreter reset.");
+                }
+                ":breakpoints" => {
+                    let bps = interp.breakpoints();
+                    if bps.is_empty() {
+                        println!("No breakpoints set.");
+                    } else {
+                        println!("Breakpoints:");
+                        for bp in bps {
+                            println!("  {}", bp);
+                        }
+                    }
+                }
+                ":continue" => {
+                    if interp.is_paused() {
+                        interp.continue_execution();
+                        println!("Continuing...");
+                    } else {
+                        println!("Not paused at a breakpoint.");
+                    }
+                }
+                _ if trimmed.starts_with(":break ") => {
+                    let word = trimmed.strip_prefix(":break ").unwrap().trim();
+                    if word.is_empty() {
+                        println!("Usage: :break <word>");
+                    } else {
+                        interp.add_breakpoint(word);
+                        println!("Breakpoint set on '{}'", word);
+                    }
+                }
+                _ if trimmed.starts_with(":unbreak ") => {
+                    let word = trimmed.strip_prefix(":unbreak ").unwrap().trim();
+                    if word.is_empty() {
+                        println!("Usage: :unbreak <word>");
+                    } else {
+                        interp.remove_breakpoint(word);
+                        println!("Breakpoint removed from '{}'", word);
+                    }
                 }
                 _ => {
                     println!("Unknown command: {}", trimmed);

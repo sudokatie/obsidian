@@ -34,6 +34,10 @@ pub struct Interpreter {
     stepping: bool,
     /// Call stack for error traces.
     call_stack: Vec<String>,
+    /// Breakpoints (word names to break on).
+    breakpoints: std::collections::HashSet<String>,
+    /// Whether we hit a breakpoint and are paused.
+    paused_at: Option<String>,
 }
 
 /// Interpreter error with optional call stack.
@@ -87,6 +91,8 @@ impl Interpreter {
             pending: Vec::new(),
             stepping: false,
             call_stack: Vec::new(),
+            breakpoints: std::collections::HashSet::new(),
+            paused_at: None,
         }
     }
 
@@ -140,16 +146,52 @@ impl Interpreter {
         &self.stack
     }
 
-    /// Clear the stack.
+    /// Clear the stack (but keep breakpoints).
     pub fn clear(&mut self) {
         self.stack.clear();
         self.pending.clear();
         self.call_stack.clear();
+        self.paused_at = None;
     }
 
     /// Get the current call stack depth.
     pub fn call_depth(&self) -> usize {
         self.call_stack.len()
+    }
+
+    /// Add a breakpoint on a word.
+    pub fn add_breakpoint(&mut self, word: &str) {
+        self.breakpoints.insert(word.to_string());
+    }
+
+    /// Remove a breakpoint.
+    pub fn remove_breakpoint(&mut self, word: &str) {
+        self.breakpoints.remove(word);
+    }
+
+    /// List all breakpoints.
+    pub fn breakpoints(&self) -> Vec<&str> {
+        self.breakpoints.iter().map(|s| s.as_str()).collect()
+    }
+
+    /// Clear all breakpoints.
+    pub fn clear_breakpoints(&mut self) {
+        self.breakpoints.clear();
+    }
+
+    /// Check if paused at a breakpoint.
+    pub fn is_paused(&self) -> bool {
+        self.paused_at.is_some()
+    }
+
+    /// Get the word we're paused at.
+    pub fn paused_word(&self) -> Option<&str> {
+        self.paused_at.as_deref()
+    }
+
+    /// Continue execution after breakpoint.
+    pub fn continue_execution(&mut self) {
+        self.paused_at = None;
     }
 
     /// Load word definitions from a program.
@@ -221,6 +263,12 @@ impl Interpreter {
 
     /// Execute a word by name.
     fn execute_word(&mut self, name: &str) -> Result<(), InterpError> {
+        // Check for breakpoint
+        if self.breakpoints.contains(name) {
+            self.paused_at = Some(name.to_string());
+            return Err(InterpError::new(format!("Breakpoint hit: {}", name)));
+        }
+
         // Check for user-defined word first
         if let Some(word) = self.words.get(name).cloned() {
             if self.trace {
@@ -790,5 +838,72 @@ mod tests {
         assert!(display.contains("Call stack:"));
         assert!(display.contains("outer"));
         assert!(display.contains("inner"));
+    }
+
+    #[test]
+    fn test_breakpoints() {
+        let mut interp = Interpreter::new();
+        
+        assert!(interp.breakpoints().is_empty());
+        
+        interp.add_breakpoint("test");
+        assert_eq!(interp.breakpoints(), vec!["test"]);
+        
+        interp.remove_breakpoint("test");
+        assert!(interp.breakpoints().is_empty());
+    }
+
+    #[test]
+    fn test_breakpoint_hit() {
+        use crate::ast::{WordDef, StackEffect};
+        
+        let mut interp = Interpreter::new();
+        
+        // Define a word
+        let word = WordDef {
+            name: "myword".to_string(),
+            effect: StackEffect::empty(),
+            body: vec![make_int(42)],
+            span: Span::default(),
+        };
+        
+        let program = crate::ast::Program {
+            words: vec![word],
+        };
+        interp.load_program(&program);
+        
+        // Set breakpoint
+        interp.add_breakpoint("myword");
+        
+        // Try to call - should hit breakpoint
+        let result = interp.execute(&[make_word("myword")]);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().message.contains("Breakpoint hit"));
+        assert!(interp.is_paused());
+        assert_eq!(interp.paused_word(), Some("myword"));
+    }
+
+    #[test]
+    fn test_continue_after_breakpoint() {
+        let mut interp = Interpreter::new();
+        interp.add_breakpoint("test");
+        
+        // Simulate being paused
+        let _ = interp.execute(&[make_word("test")]);
+        assert!(interp.is_paused());
+        
+        interp.continue_execution();
+        assert!(!interp.is_paused());
+    }
+
+    #[test]
+    fn test_clear_breakpoints() {
+        let mut interp = Interpreter::new();
+        interp.add_breakpoint("a");
+        interp.add_breakpoint("b");
+        assert_eq!(interp.breakpoints().len(), 2);
+        
+        interp.clear_breakpoints();
+        assert!(interp.breakpoints().is_empty());
     }
 }
