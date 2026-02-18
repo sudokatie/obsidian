@@ -1,0 +1,79 @@
+-- Obsidian Syntax Demo
+-- This file showcases all syntax highlighting features
+
+-- Word definitions with stack effects
+def square (n -- n*n)
+  dup *
+end
+
+def abs (n -- |n|)
+  dup 0 < if
+    negate
+  end
+end
+
+-- Control flow
+def countdown (n --)
+  while dup 0 > do
+    dup print
+    1 -
+  end
+  drop
+end
+
+def repeat-hello (n --)
+  n times
+    "Hello!" print
+  end
+end
+
+-- Boolean operations
+def is-positive (n -- bool)
+  0 >
+end
+
+def is-in-range (n min max -- bool)
+  rot dup      -- min max n n
+  rot <=       -- min n (n<=max)
+  swap rot     -- (n<=max) n min
+  >= and       -- (n<=max) and (n>=min)
+end
+
+-- Memory operations
+def store-and-load (addr val -- val)
+  over !       -- store val at addr
+  @            -- load from addr
+end
+
+-- Bitwise operations
+def set-bit (n bit -- n')
+  1 swap shl   -- create mask
+  bor          -- set the bit
+end
+
+-- Numbers in different bases
+def number-demo (--)
+  42           -- decimal
+  0xFF         -- hexadecimal
+  0b1010       -- binary
+  3.14159      -- floating point
+  1.5e10       -- scientific notation
+end
+
+-- String handling
+def greet (name --)
+  "Hello, " print
+  print
+  "!\n" print
+end
+
+-- Main entry point
+def main (--)
+  5 square print        -- 25
+  -7 abs print          -- 7
+  3 countdown           -- 3 2 1
+  2 repeat-hello        -- Hello! Hello!
+  10 1 20 is-in-range   -- true
+  100 alloc             -- allocate memory
+  dup 42 store-and-load print
+end

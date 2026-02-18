@@ -59,6 +59,8 @@ code --install-extension obsidian-lang-0.1.0.vsix
 
 ## Example
 
+See `examples/syntax-demo.obs` for a complete showcase of syntax features.
+
 ```obsidian
 -- Calculate factorial
 def factorial (n -- result)
