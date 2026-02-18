@@ -83,8 +83,12 @@
           "match": "\\b(print|\\.s|\\.)\\b"
         },
         {
+          "name": "keyword.operator.comparison.obsidian",
+          "match": "(<=|>=|<>|!=|[<>=])"
+        },
+        {
           "name": "keyword.operator.arithmetic.obsidian",
-          "match": "[+\\-*/<>=!]+"
+          "match": "[+\\-*/]"
         }
       ]
     },
