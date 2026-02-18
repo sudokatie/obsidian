@@ -279,6 +279,28 @@ cargo test                    # All tests
 cargo test --test integration # Integration tests only
 ```
 
+## Editor Support
+
+### VS Code
+
+Install the Obsidian extension from `editors/vscode/`:
+
+```bash
+# Copy to extensions folder
+cp -r editors/vscode ~/.vscode/extensions/obsidian-lang
+
+# Or package and install
+cd editors/vscode
+npm install -g vsce
+vsce package
+code --install-extension obsidian-lang-0.1.0.vsix
+```
+
+Features:
+- Syntax highlighting for `.obs` files
+- Comment toggling (`Ctrl+/`)
+- Bracket matching for `def/end`, `if/end`, `while/end`
+
 ## Roadmap
 
 ### v0.2 (Released)
@@ -291,7 +313,7 @@ cargo test --test integration # Integration tests only
 - [x] Step mode (execute one word at a time)
 - [x] Stack trace on error (shows call chain)
 - [x] Breakpoints (:break, :unbreak, :breakpoints, :continue)
-- [ ] IDE integration (VS Code extension)
+- [x] VS Code extension (syntax highlighting)
 
 See FEATURE-BACKLOG.md in the clawd repo for detailed acceptance criteria.
 

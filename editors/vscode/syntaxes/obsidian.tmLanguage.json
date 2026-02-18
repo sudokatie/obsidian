@@ -1,0 +1,119 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Obsidian",
+  "scopeName": "source.obsidian",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#builtins" },
+    { "include": "#types" },
+    { "include": "#stack-effect" },
+    { "include": "#word-definition" }
+  ],
+  "repository": {
+    "comments": {
+      "name": "comment.line.double-dash.obsidian",
+      "match": "--.*$"
+    },
+    "strings": {
+      "name": "string.quoted.double.obsidian",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.obsidian",
+          "match": "\\\\[nrt\\\\\"0]"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.obsidian",
+          "match": "\\b0[xX][0-9a-fA-F]+\\b"
+        },
+        {
+          "name": "constant.numeric.binary.obsidian",
+          "match": "\\b0[bB][01]+\\b"
+        },
+        {
+          "name": "constant.numeric.float.obsidian",
+          "match": "\\b-?[0-9]+\\.[0-9]+([eE][+-]?[0-9]+)?\\b"
+        },
+        {
+          "name": "constant.numeric.integer.obsidian",
+          "match": "\\b-?[0-9]+\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.obsidian",
+          "match": "\\b(def|end|if|else|while|do|times)\\b"
+        },
+        {
+          "name": "constant.language.boolean.obsidian",
+          "match": "\\b(true|false)\\b"
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "name": "support.function.stack.obsidian",
+          "match": "\\b(dup|drop|swap|over|rot|nip|tuck|2dup|2drop|2swap|2over|-rot)\\b"
+        },
+        {
+          "name": "support.function.arithmetic.obsidian",
+          "match": "\\b(negate|abs|min|max|clamp|sqr|mod)\\b"
+        },
+        {
+          "name": "support.function.memory.obsidian",
+          "match": "\\b(alloc|c@|c!|@|!)\\b"
+        },
+        {
+          "name": "support.function.logic.obsidian",
+          "match": "\\b(and|or|not|band|bor|bxor|bnot|shl|shr)\\b"
+        },
+        {
+          "name": "support.function.io.obsidian",
+          "match": "\\b(print|\\.s|\\.)\\b"
+        },
+        {
+          "name": "keyword.operator.arithmetic.obsidian",
+          "match": "[+\\-*/<>=!]+"
+        }
+      ]
+    },
+    "types": {
+      "name": "storage.type.obsidian",
+      "match": "\\b(i32|i64|f32|f64|bool)\\b"
+    },
+    "stack-effect": {
+      "name": "meta.stack-effect.obsidian",
+      "begin": "\\(",
+      "end": "\\)",
+      "patterns": [
+        {
+          "name": "keyword.operator.stack-separator.obsidian",
+          "match": "--"
+        },
+        {
+          "name": "variable.parameter.obsidian",
+          "match": "[a-zA-Z_][a-zA-Z0-9_]*"
+        },
+        { "include": "#types" }
+      ]
+    },
+    "word-definition": {
+      "match": "\\b(def)\\s+([a-zA-Z_][a-zA-Z0-9_\\-]*)\\b",
+      "captures": {
+        "1": { "name": "keyword.control.obsidian" },
+        "2": { "name": "entity.name.function.obsidian" }
+      }
+    }
+  }
+}
