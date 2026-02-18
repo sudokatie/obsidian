@@ -29,6 +29,12 @@
         "scopeName": "source.obsidian",
         "path": "./syntaxes/obsidian.tmLanguage.json"
       }
+    ],
+    "snippets": [
+      {
+        "language": "obsidian",
+        "path": "./snippets/obsidian.json"
+      }
     ]
   }
 }

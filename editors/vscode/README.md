@@ -7,6 +7,7 @@ Syntax highlighting and language support for Obsidian, a stack-based language th
 - Syntax highlighting for `.obs` files
 - Comment toggling (`--`)
 - Bracket matching for control structures
+- Code snippets for common patterns
 
 ## Highlighted Elements
 
@@ -39,6 +40,19 @@ npm install -g vsce
 vsce package
 code --install-extension obsidian-lang-0.1.0.vsix
 ```
+
+## Snippets
+
+| Prefix | Description |
+|--------|-------------|
+| `def` | Word definition template |
+| `main` | Main entry point |
+| `if` | If conditional |
+| `ifelse` | If-else conditional |
+| `while` | While loop |
+| `times` | Times loop |
+| `square` | Square (dup *) |
+| `factorial` | Complete factorial example |
 
 ## Example
 

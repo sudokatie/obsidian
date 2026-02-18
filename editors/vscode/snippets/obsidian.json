@@ -1,0 +1,77 @@
+{
+  "Word Definition": {
+    "prefix": "def",
+    "body": [
+      "def ${1:name} (${2:inputs} -- ${3:outputs})",
+      "  $0",
+      "end"
+    ],
+    "description": "Define a new word"
+  },
+  "Main Entry Point": {
+    "prefix": "main",
+    "body": [
+      "def main (--)",
+      "  $0",
+      "end"
+    ],
+    "description": "Main entry point"
+  },
+  "If Statement": {
+    "prefix": "if",
+    "body": [
+      "if",
+      "  $0",
+      "end"
+    ],
+    "description": "If conditional"
+  },
+  "If-Else Statement": {
+    "prefix": "ifelse",
+    "body": [
+      "if",
+      "  $1",
+      "else",
+      "  $0",
+      "end"
+    ],
+    "description": "If-else conditional"
+  },
+  "While Loop": {
+    "prefix": "while",
+    "body": [
+      "while ${1:condition} do",
+      "  $0",
+      "end"
+    ],
+    "description": "While loop"
+  },
+  "Times Loop": {
+    "prefix": "times",
+    "body": [
+      "${1:count} times",
+      "  $0",
+      "end"
+    ],
+    "description": "Repeat N times"
+  },
+  "Square": {
+    "prefix": "square",
+    "body": "dup *",
+    "description": "Square the top of stack"
+  },
+  "Factorial": {
+    "prefix": "factorial",
+    "body": [
+      "def factorial (n -- result)",
+      "  1 swap",
+      "  while dup 0 > do",
+      "    swap over *",
+      "    swap 1 -",
+      "  end",
+      "  drop",
+      "end"
+    ],
+    "description": "Factorial word definition"
+  }
+}
