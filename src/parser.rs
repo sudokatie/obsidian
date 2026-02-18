@@ -49,6 +49,18 @@ impl Parser {
         Ok(program)
     }
     
+    /// Parse a list of expressions (for REPL mode).
+    pub fn parse_expr_list(&mut self) -> Result<Vec<Expr>, ParseError> {
+        let mut exprs = Vec::new();
+        
+        while !self.at_end() && !self.check(&TokenKind::Eof) {
+            let expr = self.parse_expr()?;
+            exprs.push(expr);
+        }
+        
+        Ok(exprs)
+    }
+    
     /// Parse a word definition.
     fn parse_word_def(&mut self) -> Result<WordDef, ParseError> {
         let start_span = self.peek().span;

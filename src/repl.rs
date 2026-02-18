@@ -1,11 +1,12 @@
 use crate::checker::Checker;
 use crate::error::format_error;
+use crate::interpreter::Interpreter;
 use crate::lexer::Lexer;
 use crate::parser;
 
 /// Start interactive REPL.
 pub fn run() -> i32 {
-    println!("Obsidian REPL v0.1.0");
+    println!("Obsidian REPL v0.2.0");
     println!("Type :help for commands, :quit to exit\n");
 
     let mut rl = match rustyline::DefaultEditor::new() {
@@ -17,11 +18,11 @@ pub fn run() -> i32 {
     };
 
     let mut checker = Checker::new();
-    #[allow(unused)]
-    let mut stack: Vec<String> = Vec::new(); // For future interpreter mode
+    let mut interp = Interpreter::new();
 
     loop {
-        let line = match rl.readline("> ") {
+        let prompt = if interp.trace_enabled() { "[trace] > " } else { "> " };
+        let line = match rl.readline(prompt) {
             Ok(l) => l,
             Err(rustyline::error::ReadlineError::Interrupted) => continue,
             Err(rustyline::error::ReadlineError::Eof) => break,
@@ -42,28 +43,38 @@ pub fn run() -> i32 {
                 ":quit" | ":q" => break,
                 ":help" | ":h" => {
                     println!("Commands:");
-                    println!("  :help, :h   Show this help");
-                    println!("  :quit, :q   Exit REPL");
-                    println!("  :stack      Display current stack");
-                    println!("  :clear      Clear screen");
+                    println!("  :help, :h     Show this help");
+                    println!("  :quit, :q     Exit REPL");
+                    println!("  :stack, :s    Display current stack");
+                    println!("  :clear        Clear stack");
+                    println!("  :trace        Toggle trace mode (show stack after each op)");
+                    println!("  :reset        Clear stack and defined words");
                     println!("\nEnter Obsidian code to evaluate.");
+                    println!("\nExamples:");
+                    println!("  5 3 +         Push 5 and 3, add them");
+                    println!("  dup *         Duplicate top, multiply (square)");
+                    println!("  : square ( n -- n ) dup * ;");
                 }
-                ":stack" => {
-                    if stack.is_empty() {
-                        println!("(empty)");
-                    } else {
-                        println!("Stack ({} items):", stack.len());
-                        for (i, item) in stack.iter().rev().enumerate() {
-                            println!("  {}: {}", stack.len() - i - 1, item);
-                        }
-                    }
+                ":stack" | ":s" => {
+                    println!("{}", interp.format_stack());
                 }
                 ":clear" => {
-                    print!("\x1b[2J\x1b[H");
-                    stack.clear();
+                    interp.clear();
+                    println!("Stack cleared.");
+                }
+                ":trace" => {
+                    let new_state = !interp.trace_enabled();
+                    interp.set_trace(new_state);
+                    println!("Trace mode: {}", if new_state { "ON" } else { "OFF" });
+                }
+                ":reset" => {
+                    interp = Interpreter::new();
+                    checker = Checker::new();
+                    println!("Interpreter reset.");
                 }
                 _ => {
                     println!("Unknown command: {}", trimmed);
+                    println!("Type :help for available commands.");
                 }
             }
             continue;
@@ -97,7 +108,44 @@ pub fn run() -> i32 {
             continue;
         }
 
-        println!("OK: {} words defined", program.words.len());
+        // Load any word definitions
+        if !program.words.is_empty() {
+            interp.load_program(&program);
+            for word in &program.words {
+                println!("Defined: {}", word.name);
+            }
+        }
+
+        // Execute top-level expressions (if any)
+        // In Obsidian, the top-level is just word definitions or direct expressions
+        // For REPL, we parse bare expressions as a word body and execute them
+        if program.words.is_empty() {
+            // Re-parse as expression sequence
+            let mut lexer2 = Lexer::new(&line);
+            let tokens2 = match lexer2.tokenize() {
+                Ok(t) => t,
+                Err(_) => continue,
+            };
+
+            let mut parser2 = parser::Parser::new(tokens2);
+            let exprs = match parser2.parse_expr_list() {
+                Ok(e) => e,
+                Err(e) => {
+                    eprintln!("{}", format_error(&line, &e.into()));
+                    continue;
+                }
+            };
+
+            if let Err(e) = interp.execute(&exprs) {
+                eprintln!("error: {}", e);
+                continue;
+            }
+
+            // Show stack after execution (unless trace is on, which already shows it)
+            if !interp.trace_enabled() && !exprs.is_empty() {
+                println!("{}", interp.format_stack());
+            }
+        }
     }
 
     println!("Goodbye!");

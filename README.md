@@ -119,10 +119,28 @@ obsidian fmt <file>                      Format source
 ### REPL Commands
 
 ```
-:help     Show commands
-:stack    Display current stack
-:clear    Reset stack
-:quit     Exit
+:help, :h      Show commands
+:stack, :s     Display current stack
+:clear         Clear stack
+:trace         Toggle trace mode (shows stack after each operation)
+:reset         Clear stack and defined words
+:quit, :q      Exit
+```
+
+The REPL now executes code interactively with a built-in interpreter:
+
+```
+> 5 3 +
+<8>
+> dup *
+<64>
+> :trace
+Trace mode: ON
+[trace] > 2 3 +
+  push -> <64 2>
+  push -> <64 2 3>
+  + -> <64 5>
+<64 5>
 ```
 
 ## Built-in Words
@@ -246,12 +264,16 @@ cargo test --test integration # Integration tests only
 
 ## Roadmap
 
-### v0.2 (Planned)
-- [ ] Standard library (abs, min, max, pow, stack ops, memory ops)
+### v0.2 (Released)
+- [x] Standard library (abs, min, max, stack ops, memory ops)
 - [x] String interning and memory layout
 
-### v0.3 (Planned)
-- [ ] Debugging tools (stack visualization, stepping)
+### v0.3 (In Progress)
+- [x] Interactive interpreter in REPL
+- [x] Trace mode (stack after each operation)
+- [ ] Step mode (execute one word at a time)
+- [ ] Breakpoints
+- [ ] Stack trace on error
 - [ ] IDE integration (VS Code extension)
 
 See FEATURE-BACKLOG.md in the clawd repo for detailed acceptance criteria.
