@@ -28,6 +28,10 @@ pub struct Interpreter {
     stack: Vec<Value>,
     words: HashMap<String, WordDef>,
     trace: bool,
+    /// Pending expressions for step mode.
+    pending: Vec<Expr>,
+    /// Step mode enabled.
+    stepping: bool,
 }
 
 /// Interpreter error.
@@ -59,6 +63,8 @@ impl Interpreter {
             stack: Vec::new(),
             words: HashMap::new(),
             trace: false,
+            pending: Vec::new(),
+            stepping: false,
         }
     }
 
@@ -72,6 +78,41 @@ impl Interpreter {
         self.trace
     }
 
+    /// Enable/disable step mode.
+    pub fn set_stepping(&mut self, enabled: bool) {
+        self.stepping = enabled;
+    }
+
+    /// Check if step mode is enabled.
+    pub fn stepping(&self) -> bool {
+        self.stepping
+    }
+
+    /// Check if there are pending expressions to step through.
+    pub fn has_pending(&self) -> bool {
+        !self.pending.is_empty()
+    }
+
+    /// Get the next pending expression (for display).
+    pub fn peek_pending(&self) -> Option<&Expr> {
+        self.pending.first()
+    }
+
+    /// Load expressions for stepping (clears existing pending).
+    pub fn load_for_stepping(&mut self, exprs: Vec<Expr>) {
+        self.pending = exprs;
+    }
+
+    /// Execute one step (one expression) and return whether more remain.
+    pub fn step_one(&mut self) -> Result<bool, InterpError> {
+        if self.pending.is_empty() {
+            return Ok(false);
+        }
+        let expr = self.pending.remove(0);
+        self.execute_one(&expr)?;
+        Ok(!self.pending.is_empty())
+    }
+
     /// Get current stack contents.
     pub fn stack(&self) -> &[Value] {
         &self.stack
@@ -80,6 +121,7 @@ impl Interpreter {
     /// Clear the stack.
     pub fn clear(&mut self) {
         self.stack.clear();
+        self.pending.clear();
     }
 
     /// Load word definitions from a program.
@@ -607,5 +649,52 @@ mod tests {
         let result = interp.execute(&[make_word("dup")]);
         assert!(result.is_err());
         assert!(result.unwrap_err().message.contains("stack underflow"));
+    }
+
+    #[test]
+    fn test_step_mode() {
+        let mut interp = Interpreter::new();
+        interp.set_stepping(true);
+        assert!(interp.stepping());
+        interp.set_stepping(false);
+        assert!(!interp.stepping());
+    }
+
+    #[test]
+    fn test_load_for_stepping() {
+        let mut interp = Interpreter::new();
+        assert!(!interp.has_pending());
+        
+        interp.load_for_stepping(vec![make_int(1), make_int(2), make_word("+")]);
+        assert!(interp.has_pending());
+    }
+
+    #[test]
+    fn test_step_one() {
+        let mut interp = Interpreter::new();
+        interp.load_for_stepping(vec![make_int(5), make_int(3), make_word("+")]);
+        
+        // Step 1: push 5
+        assert!(interp.step_one().unwrap());
+        assert_eq!(interp.stack(), &[Value::I64(5)]);
+        
+        // Step 2: push 3
+        assert!(interp.step_one().unwrap());
+        assert_eq!(interp.stack(), &[Value::I64(5), Value::I64(3)]);
+        
+        // Step 3: add (returns false = no more steps)
+        assert!(!interp.step_one().unwrap());
+        assert_eq!(interp.stack(), &[Value::I64(8)]);
+    }
+
+    #[test]
+    fn test_clear_clears_pending() {
+        let mut interp = Interpreter::new();
+        interp.load_for_stepping(vec![make_int(1), make_int(2)]);
+        assert!(interp.has_pending());
+        
+        interp.clear();
+        assert!(!interp.has_pending());
+        assert!(interp.stack().is_empty());
     }
 }

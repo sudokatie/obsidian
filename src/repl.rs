@@ -21,7 +21,13 @@ pub fn run() -> i32 {
     let mut interp = Interpreter::new();
 
     loop {
-        let prompt = if interp.trace_enabled() { "[trace] > " } else { "> " };
+        let prompt = if interp.stepping() && interp.has_pending() {
+            "[step] > "
+        } else if interp.trace_enabled() {
+            "[trace] > "
+        } else {
+            "> "
+        };
         let line = match rl.readline(prompt) {
             Ok(l) => l,
             Err(rustyline::error::ReadlineError::Interrupted) => continue,
@@ -48,6 +54,9 @@ pub fn run() -> i32 {
                     println!("  :stack, :s    Display current stack");
                     println!("  :clear        Clear stack");
                     println!("  :trace        Toggle trace mode (show stack after each op)");
+                    println!("  :step         Toggle step mode (execute one op at a time)");
+                    println!("  :n, :next     Execute next step (in step mode)");
+                    println!("  :run          Execute all remaining steps");
                     println!("  :reset        Clear stack and defined words");
                     println!("\nEnter Obsidian code to evaluate.");
                     println!("\nExamples:");
@@ -66,6 +75,45 @@ pub fn run() -> i32 {
                     let new_state = !interp.trace_enabled();
                     interp.set_trace(new_state);
                     println!("Trace mode: {}", if new_state { "ON" } else { "OFF" });
+                }
+                ":step" => {
+                    let new_state = !interp.stepping();
+                    interp.set_stepping(new_state);
+                    println!("Step mode: {}", if new_state { "ON" } else { "OFF" });
+                    if new_state {
+                        println!("  Enter code to load, then :n or :next to step");
+                    }
+                }
+                ":n" | ":next" => {
+                    if !interp.has_pending() {
+                        println!("No pending steps. Enter code first.");
+                    } else {
+                        match interp.step_one() {
+                            Ok(more) => {
+                                println!("{}", interp.format_stack());
+                                if !more {
+                                    println!("(done)");
+                                }
+                            }
+                            Err(e) => eprintln!("error: {}", e),
+                        }
+                    }
+                }
+                ":run" => {
+                    if !interp.has_pending() {
+                        println!("No pending steps.");
+                    } else {
+                        while interp.has_pending() {
+                            match interp.step_one() {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    eprintln!("error: {}", e);
+                                    break;
+                                }
+                            }
+                        }
+                        println!("{}", interp.format_stack());
+                    }
                 }
                 ":reset" => {
                     interp = Interpreter::new();
@@ -136,14 +184,26 @@ pub fn run() -> i32 {
                 }
             };
 
-            if let Err(e) = interp.execute(&exprs) {
-                eprintln!("error: {}", e);
+            if exprs.is_empty() {
                 continue;
             }
 
-            // Show stack after execution (unless trace is on, which already shows it)
-            if !interp.trace_enabled() && !exprs.is_empty() {
-                println!("{}", interp.format_stack());
+            if interp.stepping() {
+                // In step mode, load expressions for stepping
+                let count = exprs.len();
+                interp.load_for_stepping(exprs);
+                println!("Loaded {} step(s). Use :n to step, :run to execute all.", count);
+            } else {
+                // Normal mode: execute immediately
+                if let Err(e) = interp.execute(&exprs) {
+                    eprintln!("error: {}", e);
+                    continue;
+                }
+
+                // Show stack after execution (unless trace is on, which already shows it)
+                if !interp.trace_enabled() {
+                    println!("{}", interp.format_stack());
+                }
             }
         }
     }

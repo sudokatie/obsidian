@@ -143,6 +143,23 @@ Trace mode: ON
 <64 5>
 ```
 
+Step mode lets you execute one operation at a time:
+
+```
+> :step
+Step mode: ON
+> 10 5 - 2 *
+Loaded 5 step(s). Use :n to step, :run to execute all.
+[step] > :n
+<10>
+[step] > :n
+<10 5>
+[step] > :n
+<5>
+[step] > :run
+<10>
+```
+
 ## Built-in Words
 
 ### Stack Operations
@@ -271,7 +288,7 @@ cargo test --test integration # Integration tests only
 ### v0.3 (In Progress)
 - [x] Interactive interpreter in REPL
 - [x] Trace mode (stack after each operation)
-- [ ] Step mode (execute one word at a time)
+- [x] Step mode (execute one word at a time)
 - [ ] Breakpoints
 - [ ] Stack trace on error
 - [ ] IDE integration (VS Code extension)
