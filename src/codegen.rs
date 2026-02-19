@@ -920,7 +920,7 @@ mod tests {
     fn test_float_literal() {
         let mut cg = CodeGen::new();
         let word = make_word("foo", 0, 1, vec![
-            Expr::Literal(Literal::Float(3.14)),
+            Expr::Literal(Literal::Float(2.5)),
         ]);
         let program = Program { words: vec![word] };
         let wasm = cg.generate(&program).unwrap();

@@ -610,9 +610,9 @@ mod tests {
     
     #[test]
     fn test_floats() {
-        let kinds = token_kinds("3.14 0.5 1.0 1e10 2.5e-3");
+        let kinds = token_kinds("2.5 0.5 1.0 1e10 2.5e-3");
         assert_eq!(kinds.len(), 5);
-        assert!(matches!(kinds[0], TokenKind::Float(f) if (f - 3.14).abs() < 0.001));
+        assert!(matches!(kinds[0], TokenKind::Float(f) if (f - 2.5).abs() < 0.001));
         assert!(matches!(kinds[1], TokenKind::Float(f) if (f - 0.5).abs() < 0.001));
         assert!(matches!(kinds[2], TokenKind::Float(f) if (f - 1.0).abs() < 0.001));
         assert!(matches!(kinds[3], TokenKind::Float(f) if (f - 1e10).abs() < 1.0));

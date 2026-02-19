@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn test_literal_typ() {
         assert_eq!(Literal::Integer(42).typ(), Type::I64);
-        assert_eq!(Literal::Float(3.14).typ(), Type::F64);
+        assert_eq!(Literal::Float(2.5).typ(), Type::F64);
         assert_eq!(Literal::Bool(true).typ(), Type::Bool);
     }
     

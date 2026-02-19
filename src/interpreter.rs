@@ -786,7 +786,7 @@ mod tests {
 
     #[test]
     fn test_call_depth() {
-        let mut interp = Interpreter::new();
+        let interp = Interpreter::new();
         assert_eq!(interp.call_depth(), 0);
     }
 
