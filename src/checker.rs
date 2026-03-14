@@ -388,7 +388,7 @@ mod tests {
             word_call("dup"),
             word_call("*"),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         assert!(checker.check(&program).is_ok());
     }
     
@@ -399,7 +399,7 @@ mod tests {
         let word = make_word("bad", 0, 0, vec![
             word_call("drop"),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let result = checker.check(&program);
         assert!(result.is_err());
         let errors = result.unwrap_err();
@@ -415,7 +415,7 @@ mod tests {
         let word = make_word("bad", 0, 0, vec![
             word_call("foobar"),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let result = checker.check(&program);
         assert!(result.is_err());
         let errors = result.unwrap_err();
@@ -431,7 +431,7 @@ mod tests {
             int_literal(42),
             word_call("prnt"),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let result = checker.check(&program);
         assert!(result.is_err());
         let errors = result.unwrap_err();
@@ -445,7 +445,7 @@ mod tests {
         let word = make_word("bad", 1, 1, vec![
             word_call("drop"),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let result = checker.check(&program);
         assert!(result.is_err());
         let errors = result.unwrap_err();
@@ -460,7 +460,7 @@ mod tests {
         let word = make_word("foo", 0, 1, vec![
             int_literal(42),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         assert!(checker.check(&program).is_ok());
     }
     
@@ -475,7 +475,7 @@ mod tests {
                 span: Span::default(),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         assert!(checker.check(&program).is_ok());
     }
     
@@ -490,7 +490,7 @@ mod tests {
                 span: Span::new(0, 1, 1, 1),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let result = checker.check(&program);
         assert!(result.is_err());
         let errors = result.unwrap_err();
@@ -508,7 +508,7 @@ mod tests {
                 span: Span::new(0, 1, 1, 1),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let result = checker.check(&program);
         assert!(result.is_err());
     }
@@ -524,7 +524,7 @@ mod tests {
                 span: Span::new(0, 1, 1, 1),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let result = checker.check(&program);
         assert!(result.is_err());
         let errors = result.unwrap_err();
@@ -550,7 +550,7 @@ mod tests {
             },
             word_call("drop"),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         assert!(checker.check(&program).is_ok());
     }
     
@@ -565,7 +565,7 @@ mod tests {
                 span: Span::new(0, 1, 1, 1),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let result = checker.check(&program);
         assert!(result.is_err());
     }
@@ -584,7 +584,7 @@ mod tests {
                 span: Span::default(),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         assert!(checker.check(&program).is_ok());
     }
     
@@ -601,7 +601,7 @@ mod tests {
             word_call("double"),
             word_call("double"),
         ]);
-        let program = Program { words: vec![double, quad] };
+        let program = Program { imports: Vec::new(), words: vec![double, quad] };
         assert!(checker.check(&program).is_ok());
     }
     
@@ -611,7 +611,7 @@ mod tests {
         // Two bad words
         let bad1 = make_word("bad1", 0, 0, vec![word_call("drop")]);
         let bad2 = make_word("bad2", 0, 0, vec![word_call("drop")]);
-        let program = Program { words: vec![bad1, bad2] };
+        let program = Program { imports: Vec::new(), words: vec![bad1, bad2] };
         let result = checker.check(&program);
         assert!(result.is_err());
         let errors = result.unwrap_err();
@@ -638,7 +638,7 @@ mod tests {
                 span: Span::new(0, 1, 1, 1),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let result = checker.check(&program);
         assert!(result.is_err());
         let errors = result.unwrap_err();
@@ -655,7 +655,7 @@ mod tests {
                 span: Span::new(0, 1, 1, 1),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let result = checker.check(&program);
         assert!(result.is_err());
     }
@@ -680,7 +680,7 @@ mod tests {
                 span: Span::default(),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         // This should work: both outer branches produce 1 value
         assert!(checker.check(&program).is_ok());
     }
@@ -713,7 +713,7 @@ mod tests {
             word_call("abs"),
             word_call("negate"),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         assert!(checker.check(&program).is_ok());
     }
     
@@ -728,7 +728,7 @@ mod tests {
                 span: Span::new(0, 1, 1, 1),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let result = checker.check(&program);
         assert!(result.is_err());
         let errors = result.unwrap_err();

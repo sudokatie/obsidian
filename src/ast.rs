@@ -1,15 +1,29 @@
 use crate::span::Span;
 
+/// An import declaration.
+#[derive(Debug, Clone)]
+pub struct Import {
+    /// Path to the imported file (relative or absolute)
+    pub path: String,
+    /// Optional alias/namespace
+    pub alias: Option<String>,
+    pub span: Span,
+}
+
 /// A complete Obsidian program.
 #[derive(Debug, Clone)]
 pub struct Program {
+    pub imports: Vec<Import>,
     pub words: Vec<WordDef>,
 }
 
 impl Program {
     /// Create an empty program.
     pub fn new() -> Self {
-        Self { words: Vec::new() }
+        Self { 
+            imports: Vec::new(),
+            words: Vec::new(),
+        }
     }
 }
 
@@ -159,7 +173,19 @@ mod tests {
     #[test]
     fn test_program_new() {
         let prog = Program::new();
+        assert!(prog.imports.is_empty());
         assert!(prog.words.is_empty());
+    }
+    
+    #[test]
+    fn test_import() {
+        let import = Import {
+            path: "std/math.obs".to_string(),
+            alias: Some("math".to_string()),
+            span: Span::default(),
+        };
+        assert_eq!(import.path, "std/math.obs");
+        assert_eq!(import.alias, Some("math".to_string()));
     }
     
     #[test]

@@ -448,6 +448,7 @@ impl<'a> Lexer<'a> {
             "times" => TokenKind::Times,
             "true" => TokenKind::True,
             "false" => TokenKind::False,
+            "import" => TokenKind::Import,
             
             // Types
             "i32" => TokenKind::I32,

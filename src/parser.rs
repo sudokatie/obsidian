@@ -1,4 +1,4 @@
-use crate::ast::{Expr, Literal, Program, StackEffect, StackItem, Type, WordDef};
+use crate::ast::{Expr, Import, Literal, Program, StackEffect, StackItem, Type, WordDef};
 use crate::span::Span;
 use crate::token::{Token, TokenKind};
 
@@ -38,6 +38,13 @@ impl Parser {
     pub fn parse(&mut self) -> Result<Program, ParseError> {
         let mut program = Program::new();
         
+        // Parse imports first (must come before word definitions)
+        while !self.at_end() && self.check(&TokenKind::Import) {
+            let import = self.parse_import()?;
+            program.imports.push(import);
+        }
+        
+        // Parse word definitions
         while !self.at_end() {
             if self.check(&TokenKind::Eof) {
                 break;
@@ -47,6 +54,50 @@ impl Parser {
         }
         
         Ok(program)
+    }
+    
+    /// Parse an import statement: import "path" or import "path" as alias
+    fn parse_import(&mut self) -> Result<Import, ParseError> {
+        let start_span = self.peek().span;
+        
+        self.expect(&TokenKind::Import)?;
+        
+        // Expect a string literal for the path
+        let path = match &self.peek().kind {
+            TokenKind::String(s) => {
+                let path = s.clone();
+                self.advance();
+                path
+            }
+            _ => {
+                return Err(ParseError {
+                    message: "expected string path after 'import'".to_string(),
+                    span: self.peek().span,
+                    expected: Some("string".to_string()),
+                });
+            }
+        };
+        
+        // Optional: "as alias"
+        let alias = if self.check_ident("as") {
+            self.advance(); // consume "as"
+            Some(self.expect_ident()?)
+        } else {
+            None
+        };
+        
+        let end_span = self.previous().span;
+        
+        Ok(Import {
+            path,
+            alias,
+            span: start_span.merge(end_span),
+        })
+    }
+    
+    /// Check if the current token is a specific identifier.
+    fn check_ident(&self, name: &str) -> bool {
+        matches!(&self.peek().kind, TokenKind::Ident(s) if s == name)
     }
     
     /// Parse a list of expressions (for REPL mode).

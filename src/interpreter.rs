@@ -813,6 +813,7 @@ mod tests {
         };
         
         let program = crate::ast::Program {
+            imports: Vec::new(),
             words: vec![bad_word, caller],
         };
         interp.load_program(&program);
@@ -868,6 +869,7 @@ mod tests {
         };
         
         let program = crate::ast::Program {
+            imports: Vec::new(),
             words: vec![word],
         };
         interp.load_program(&program);

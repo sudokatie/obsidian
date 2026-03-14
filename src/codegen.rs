@@ -765,7 +765,7 @@ mod tests {
     fn test_simple_word() {
         let mut cg = CodeGen::new();
         let word = make_word("foo", 0, 0, vec![]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
         assert_eq!(&wasm[0..4], b"\x00asm");
@@ -775,7 +775,7 @@ mod tests {
     fn test_word_with_literal() {
         let mut cg = CodeGen::new();
         let word = make_word("foo", 0, 1, vec![int_lit(42)]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -784,7 +784,7 @@ mod tests {
     fn test_arithmetic_add() {
         let mut cg = CodeGen::new();
         let word = make_word("add", 2, 1, vec![word_call("+")]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -793,7 +793,7 @@ mod tests {
     fn test_arithmetic_sub() {
         let mut cg = CodeGen::new();
         let word = make_word("sub", 2, 1, vec![word_call("-")]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -802,7 +802,7 @@ mod tests {
     fn test_arithmetic_mul() {
         let mut cg = CodeGen::new();
         let word = make_word("mul", 2, 1, vec![word_call("*")]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -811,7 +811,7 @@ mod tests {
     fn test_comparison() {
         let mut cg = CodeGen::new();
         let word = make_word("eq", 2, 1, vec![word_call("=")]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -820,7 +820,7 @@ mod tests {
     fn test_drop() {
         let mut cg = CodeGen::new();
         let word = make_word("discard", 1, 0, vec![word_call("drop")]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -835,7 +835,7 @@ mod tests {
                 span: Span::default(),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -850,7 +850,7 @@ mod tests {
                 span: Span::default(),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -865,7 +865,7 @@ mod tests {
                 span: Span::default(),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -880,7 +880,7 @@ mod tests {
                 span: Span::default(),
             },
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -890,7 +890,7 @@ mod tests {
         let mut cg = CodeGen::new();
         let helper = make_word("helper", 0, 1, vec![int_lit(99)]);
         let caller = make_word("caller", 0, 1, vec![word_call("helper")]);
-        let program = Program { words: vec![helper, caller] };
+        let program = Program { imports: Vec::new(), words: vec![helper, caller] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -899,7 +899,7 @@ mod tests {
     fn test_main_exported() {
         let mut cg = CodeGen::new();
         let main = make_word("main", 0, 0, vec![]);
-        let program = Program { words: vec![main] };
+        let program = Program { imports: Vec::new(), words: vec![main] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
         // Check that wasm contains "main" export
@@ -922,7 +922,7 @@ mod tests {
         let word = make_word("foo", 0, 1, vec![
             Expr::Literal(Literal::Float(2.5)),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -933,7 +933,7 @@ mod tests {
         let word = make_word("foo", 0, 1, vec![
             Expr::Literal(Literal::Bool(true)),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -944,7 +944,7 @@ mod tests {
         let word = make_word("foo", 0, 1, vec![
             Expr::Literal(Literal::String("hello".to_string())),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -955,7 +955,7 @@ mod tests {
         let word = make_word("logic", 2, 1, vec![
             word_call("and"),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -966,7 +966,7 @@ mod tests {
         let word = make_word("bits", 2, 1, vec![
             word_call("bxor"),
         ]);
-        let program = Program { words: vec![word] };
+        let program = Program { imports: Vec::new(), words: vec![word] };
         let wasm = cg.generate(&program).unwrap();
         assert!(!wasm.is_empty());
     }
@@ -978,7 +978,7 @@ mod tests {
             int_lit(42),
             word_call("print"),
         ]);
-        let program = Program { words: vec![main] };
+        let program = Program { imports: Vec::new(), words: vec![main] };
         let wasm = cg.generate(&program).unwrap();
         // Should be well under 1KB for such a simple program
         assert!(wasm.len() < 1024);

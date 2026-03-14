@@ -14,6 +14,7 @@ pub enum TokenKind {
     Times,
     True,
     False,
+    Import,
     
     // Type keywords
     I32,
@@ -111,6 +112,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Times => write!(f, "times"),
             TokenKind::True => write!(f, "true"),
             TokenKind::False => write!(f, "false"),
+            TokenKind::Import => write!(f, "import"),
             TokenKind::I32 => write!(f, "i32"),
             TokenKind::I64 => write!(f, "i64"),
             TokenKind::F32 => write!(f, "f32"),

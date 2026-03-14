@@ -9,3 +9,4 @@ pub mod codegen;
 pub mod runtime;
 pub mod repl;
 pub mod interpreter;
+pub mod module;
