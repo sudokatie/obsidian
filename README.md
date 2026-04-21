@@ -307,7 +307,7 @@ Features:
 - [x] Standard library (abs, min, max, stack ops, memory ops)
 - [x] String interning and memory layout
 
-### v0.3 (In Progress)
+### v0.3 (Complete)
 - [x] Interactive interpreter in REPL
 - [x] Trace mode (stack after each operation)
 - [x] Step mode (execute one word at a time)
